@@ -39,8 +39,46 @@ render_rect(Bitmap *output, v2 pos, v2 dim, v4 color_)
           x_scan < dim.x;
           ++x_scan)
       {
-         // Todo: Alpha blending
-         *dest++ = color;
+         f32 alpha = (f32)((color & 0xff000000) >> 24);
+         f32 red =   (f32)((color & 0x00ff0000) >> 16);
+         f32 green = (f32)((color & 0x0000ff00) >> 8);
+         f32 blue =  (f32)((color & 0x000000ff) >> 0);
+
+         f32 d_alpha = (f32)((*dest & 0xff000000) >> 24);
+         f32 d_red =   (f32)((*dest & 0x00ff0000) >> 16);
+         f32 d_green = (f32)((*dest & 0x0000ff00) >> 8);
+         f32 d_blue =  (f32)((*dest & 0x000000ff) >> 0);
+
+         f32 norm_alpha = alpha/255.0f;
+         f32 norm_d_alpha = d_alpha/255.0f;
+         red /= 255.0f;
+         green /= 255.0f;
+         blue /= 255.0f;
+         d_red /= 255.0f;
+         d_green /= 255.0f;
+         d_blue /= 255.0f;
+
+         // Note: Non-premultiplied Alpha blending
+         // out_a = src_a + dst_a(1-src_a)
+         // out_rgb = (src_rgb*src_a + dst_rgb*dst_a(1 - src_a))/out_a
+         f32 out_alpha = norm_alpha + norm_d_alpha*(1.0f - norm_alpha);
+         f32 inv_out_alpha = 1.0f/out_alpha;
+
+         red = (red*norm_alpha + d_red*norm_d_alpha*(1.0f - norm_alpha))*inv_out_alpha;
+         green = (green*norm_alpha + d_green*norm_d_alpha*(1.0f - norm_alpha))*inv_out_alpha;
+         blue = (blue*norm_alpha + d_blue*norm_d_alpha*(1.0f - norm_alpha))*inv_out_alpha;
+
+         out_alpha *= 255.0f;
+         red *= 255.0f;
+         green *= 255.0f;
+         blue *= 255.0f;
+
+         u32 final_color = (((u32)out_alpha & 0xff) << 24)|
+                           (((u32)red   & 0xff) << 16)|
+                           (((u32)green & 0xff) << 8)|
+                           (((u32)blue  & 0xff) << 0);
+
+         *dest++ = final_color;
       }
       dest_row += output->width;
    }
@@ -71,13 +109,27 @@ render_bitmap(Bitmap *output, Bitmap bitmap, int x, int y)
          f32 d_blue =  (f32)((*dest & 0x000000FF) >> 0);
 
          f32 norm_alpha = alpha/255.0f;
-         f32 norm_d_alpha = d_alpha/255.0f;
 
-         f32 inv_norm_alpha = (1.0f - norm_alpha);
-         red =   inv_norm_alpha*d_red + red;
-         green = inv_norm_alpha*d_green + green;
-         blue =  inv_norm_alpha*d_blue + blue;
-         d_alpha = 255.0f*(norm_alpha + norm_d_alpha - norm_alpha*norm_d_alpha);
+         red   /= 255.0f;
+         green /= 255.0f;
+         blue  /= 255.0f;
+         d_red   /= 255.0f;
+         d_green /= 255.0f;
+         d_blue  /= 255.0f;
+
+         // Note: premultiplied alpha, alpha blending
+         // out_a   = src_a + dst_a(1 - src_a)
+         // out_rgb = src_rgb + dst_rgb(1 - src_a)
+
+         f32 out_alpha = alpha + d_alpha*(1 - norm_alpha);
+
+         red =   (red + d_red*(1 - norm_alpha));
+         green = (green + d_green*(1 - norm_alpha));
+         blue =  (blue + d_blue*(1 - norm_alpha));
+
+         red   *= 255.0f;
+         green *= 255.0f;
+         blue  *= 255.0f;
 
          u32 color = ((u32)d_alpha << 24) |
                      ((u32)red   << 16) |
