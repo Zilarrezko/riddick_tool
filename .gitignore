@@ -1,0 +1,8 @@
+﻿.vs
+*.sln
+*.bmp
+font.rta
+font.xcf
+font_cap.xcf
+bin
+src/stats.ctm
