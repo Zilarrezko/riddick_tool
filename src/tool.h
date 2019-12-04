@@ -38,6 +38,7 @@ typedef struct
    bool dll_injected;
 
    bool attached;
+   bool force_detach;
 
    umm frame;
    f32 frame_time;

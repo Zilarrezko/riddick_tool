@@ -51,6 +51,7 @@ free_code_list(State *state)
          Code_Info *code_info = state->code_list + index;
          free_code(&state->process, code_info);
       }
+      state->code_list_count = 0;
    }
 }
 
@@ -203,7 +204,7 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
    }
 
    u_start(u_context, input->mouse.x, input->mouse.y, input->mouse_down, u_keys);
-   u_window(u_context, u_rect(0, 0, (f32)back_buffer->width, (f32)back_buffer->height), "");
+   u_window_opt(u_context, u_rect(0, 0, (f32)back_buffer->width, (f32)back_buffer->height), "", UWindowOption_no_title);
 
    char print_buffer[256] = "";
    
@@ -340,13 +341,26 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
          format_string(text_buffer, "press %c to toggle the frame limiter", state->mspf_toggle_key);
          u_text(u_context, text_buffer);
 
+         u_start_row(u_context, 1, (s32[]){150}, 32);
+         if(u_button(u_context, "DETACH"))
+         {
+            state->force_detach = true;
+            state->attached = false;
+            d_log("Force detach");
+            free_code_list(state);
+            if(registry.base)
+            {
+               deallocate_in_process(state->process, registry.base);
+               registry.base = 0;
+            }
+         }
+
+#if DEBUG
          Module gdi32full_module = get_module_by_name(process, "gdi32full.dll");
          void *dll_buffer = push_size(&temp_mandala, gdi32full_module.size);
          read_memory(process, gdi32full_module.base, dll_buffer, gdi32full_module.size);
          Dll_Info dll_info = get_dll_info(dll_buffer);
 
-
-#if DEBUG
          u_start_row(u_context, 1, (s32[]){-1}, 28);
          u_text(u_context, "DEBUG:");
          u_start_row(u_context, 3, (s32[]){150, 150, -1}, 28);
@@ -358,6 +372,7 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
    }
    else
    {
+      persistent bool attach_now = false;
       if(state->game_starting)
       {
          bool process_is_up = is_process_running(&state->process);
@@ -371,6 +386,7 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
             Module test_module = get_module_by_name(&state->process, "GameClasses_Win32_x86.dll");
             Module test_module_2 = get_module_by_name(&state->process, "gdi32full.dll");
             state->game_starting = (test_module.size == 0 || test_module_2.size == 0) ? true : false;
+            attach_now = (state->game_starting) ? false : true;
          }
          else
          {
@@ -381,8 +397,10 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
       }
       else
       {
-         if(state->frame%120 == 0 && attach_process("DarkAthena.exe", &state->process))
+         if(!state->force_detach && (attach_now || state->frame%120 == 0) && attach_process("DarkAthena.exe", &state->process))
          {
+            attach_now = false;
+
             Module test_module = get_module_by_name(&state->process, "GameClasses_Win32_x86.dll");
             Module test_module_2 = get_module_by_name(&state->process, "gdi32full.dll");
             if(test_module.size == 0 || test_module_2.size == 0)
@@ -648,50 +666,24 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
 
             // u_start_column(u_context);
             char text_buffer[256] = "";
-            // format_string(text_buffer, "mouse: %ux %uy", u_context->mouse.x, u_context->mouse.y);
-            u_text(u_context, text_buffer);
-            u_text(u_context, "Assault on Dark Athena 2009");
-            // u_button(u_context, "Here's another button!");
-            // u_end_column(u_context);
-
-            persistent f32 fps_arr[120] = {0};
-            f32 avg_fps = 0;
-            if(!is_infinite(1.0f/state->frame_time))
+            if(state->force_detach)
             {
-               fps_arr[state->frame%array_count(fps_arr)] = 1.0f/state->frame_time;
-               for(s32 index = 0;
-                   index < array_count(fps_arr);
-                   ++index)
-               {
-                  avg_fps += fps_arr[index];
-               }
-               avg_fps /= array_count(fps_arr);
+               u_text(u_context, "Tool won't auto-attach");
             }
-            // format_string(text_buffer, "dt: %f; avg:%.f; fps: %.f", state->frame_time, avg_fps, 1.0f/state->frame_time);
-            u_text(u_context, text_buffer);
+            else
+            {
+               u_text(u_context, "Tool will auto-attach");
+            }
+            u_text(u_context, "Assault on Dark Athena 2009");
 
-            // format_string(text_buffer, "sizeof U_Command: %u", sizeof(U_Command));
-            u_text(u_context, text_buffer);
-            // format_string(text_buffer, "sizeof U_Context: %u", sizeof(U_Context));
-            u_text(u_context, text_buffer);
-            
-#if 0
-            persistent f32 test = 30.0f;
-            format_string(text_buffer, "%.0f", test);
-            u_slider(u_context, &test, 1.0f, 144.0f, text_buffer);
-            *text_buffer = 0;
-#else
-            u_text(u_context, text_buffer);
-#endif
+            u_start_row(u_context, 1, (s32[]){150}, 32);
 
-            // format_string(text_buffer, "text input: %s", u_context->text_input);
-            u_text(u_context, text_buffer);
-
-            u_start_row(u_context, 1, (s32[]){100}, 28);
-            // u_button(u_context, "Start Game");
-            u_start_row(u_context, 1, (s32[]){200}, 28);
-            // persistent bool check = false;
-            // u_checkbox(u_context, &check, "VSYNC");
+            if(state->force_detach && u_button(u_context, "ATTACH"))
+            {
+               state->force_detach = false;
+               attach_now = true;
+               d_log("allowing reattaching");
+            }
 
 #if 0
             if(u_button(u_context, "EXIT"))

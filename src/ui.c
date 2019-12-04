@@ -435,8 +435,13 @@ u_text_rect(U_Context *u_context, U_Rect rect, char *string)
    u_text_rect_opt(u_context, rect, string, 0);
 }
 
+typedef enum
+{
+   UWindowOption_no_title = 0x01,
+} U_Window_Options;
+
 local bool
-u_window(U_Context *u_context, U_Rect rect, char *label)
+u_window_opt(U_Context *u_context, U_Rect rect, char *label, int opt)
 {
    bool result = false;
 
@@ -445,23 +450,32 @@ u_window(U_Context *u_context, U_Rect rect, char *label)
    U_Command_Rect *command = u_push_command(u_context, UCommand_rect);
    command->rect = rect;
    command->color = u_context->style.window_color;
-   
-   command = u_push_command(u_context, UCommand_rect);
-   command->rect = rect;
-   command->rect.h = window_title_height;
-   command->color = u_context->style.window_title_color;
-
-   u_text_rect(u_context, command->rect, label);
 
    u_context->window = rect;
 
-   rect.y += window_title_height;
-   rect.h -= window_title_height;
+   if(!(opt & UWindowOption_no_title))
+   {
+      command = u_push_command(u_context, UCommand_rect);
+      command->rect = rect;
+      command->rect.h = window_title_height;
+      command->color = u_context->style.window_title_color;
+
+      u_text_rect(u_context, command->rect, label);
+
+      rect.y += window_title_height;
+      rect.h -= window_title_height;
+   }
 
    U_Layout *layout = u_push_layout(u_context);
    layout->container = rect;
 
    return result;
+}
+
+local bool
+u_window(U_Context *u_context, U_Rect rect, char *label)
+{
+   return u_window_opt(u_context, rect, label, 0);
 }
 
 local void
