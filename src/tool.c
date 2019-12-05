@@ -739,7 +739,7 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
    r_rectangle_rect(r_context, b, (v4){100, 100, 0, 255});
    r_rectangle_rect(r_context, r_intersect_rect(b, a), (v4){100, 0, 0, 255});
 #else
-   r_bitmap(r_context, &state->test_bitmap, (v2){(f32)input->mouse.x - state->test_bitmap.width/2, (f32)input->mouse.y - state->test_bitmap.height/2});
+   
 #endif
 
    r_render(back_buffer, r_context);

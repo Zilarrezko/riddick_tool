@@ -78,6 +78,15 @@ window_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
          int width = (l_param & 0xFFFF);
          int height = ((l_param & 0xFFFF0000) >> 16);
          resize_back_buffer(&global_back_buffer, width, height);
+
+         Bitmap back_buffer;
+         back_buffer.memory = global_back_buffer.memory;
+         back_buffer.width = global_back_buffer.width;
+         back_buffer.height = global_back_buffer.height;
+
+         update_and_render(state, input, &back_buffer);
+         present(&global_back_buffer, global_back_buffer.width, global_back_buffer.height);
+         ValidateRect(window, 0);
       } break;
 
       case WM_PAINT:
@@ -270,6 +279,9 @@ WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR command_line, int sho
    HANDLE thread_handle = CreateThread(0, 0, thread_proc, &thread_package, 0, &thread_id);
 #endif
 
+   perm_mandala = init_mandala(mega(2));
+   temp_mandala = init_mandala(giga(2));
+
    global_window = CreateWindowA(window_class.lpszClassName, "riddick tool",
                                  WS_OVERLAPPEDWINDOW,
                                  CW_USEDEFAULT, CW_USEDEFAULT,
@@ -284,9 +296,6 @@ WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR command_line, int sho
 
    global_device_context = GetDC(global_window);
    // resize_back_buffer(&global_back_buffer, 540, 540);
-
-   perm_mandala = init_mandala(mega(2));
-   temp_mandala = init_mandala(giga(2));
 
    register_global_keys();
 
