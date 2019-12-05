@@ -1,8 +1,24 @@
 
+#define R_MAX(a, b) ((a) < (b) ? (b) : (a))
+#define R_MIN(a, b) ((a) > (b) ? (b) : (a))
+
 local f32
 lerp(f32 val, f32 dest, f32 perc)
 {
    f32 result = (1 - perc)*val + perc*dest;
+
+   return result;
+}
+
+local Rect
+r_intersect_rect(Rect a, Rect b)
+{
+   Rect result = {0};
+
+   result.x = R_MAX(a.x, b.x);
+   result.y = R_MAX(a.y, b.y);
+   result.w = R_MIN(a.x + a.w, b.x + b.w) - result.x;
+   result.h = R_MIN(a.y + a.h, b.y + b.h) - result.y;
 
    return result;
 }
@@ -21,22 +37,26 @@ render_clear(Bitmap *output)
 local void
 render_rect(Bitmap *output, v2 pos, v2 dim, v4 color_)
 {
-   int x = (int)round_f32(pos.x);
-   int y = (int)round_f32(pos.y);
+   Rect rect = {pos.x, pos.y, dim.x, dim.y};
+   Rect out_rect = {0, 0, (f32)output->width, (f32)output->height};
+   rect = r_intersect_rect(rect, out_rect);
+
+   int dest_x = (int)round_f32(rect.x);
+   int dest_y = (int)round_f32(rect.y);
 
    u32 color = ((u32)round_f32(color_.a)&0xFF) << 24 |
                ((u32)round_f32(color_.r)&0xFF) << 16 |
                ((u32)round_f32(color_.g)&0xFF) << 8  |
                ((u32)round_f32(color_.b)&0xFF) << 0;
 
-   u32 *dest_row = (u32 *)output->memory + y*output->width + x;
+   u32 *dest_row = (u32 *)output->memory + dest_y*output->width + dest_x;
    for(umm y_scan = 0;
-       y_scan < dim.y;
+       y_scan < rect.h;
        ++y_scan)
    {
       u32 *dest = dest_row;
       for(umm x_scan = 0;
-          x_scan < dim.x;
+          x_scan < rect.w;
           ++x_scan)
       {
          f32 alpha = (f32)((color & 0xff000000) >> 24);
@@ -51,12 +71,12 @@ render_rect(Bitmap *output, v2 pos, v2 dim, v4 color_)
 
          f32 norm_alpha = alpha/255.0f;
          f32 norm_d_alpha = d_alpha/255.0f;
-         red /= 255.0f;
+         red   /= 255.0f;
          green /= 255.0f;
-         blue /= 255.0f;
-         d_red /= 255.0f;
+         blue  /= 255.0f;
+         d_red   /= 255.0f;
          d_green /= 255.0f;
-         d_blue /= 255.0f;
+         d_blue  /= 255.0f;
 
          // Note: Non-premultiplied Alpha blending
          // out_a = src_a + dst_a(1-src_a)
@@ -87,15 +107,31 @@ render_rect(Bitmap *output, v2 pos, v2 dim, v4 color_)
 local void
 render_bitmap(Bitmap *output, Bitmap bitmap, int x, int y)
 {
-   u32 *src = (u32 *)bitmap.memory;
-   u32 *dest_row = (u32 *)output->memory + y*output->width + x;
+   Rect rect = {(f32)x, (f32)y, (f32)bitmap.width, (f32)bitmap.height};
+   Rect out_rect = {0, 0, (f32)output->width, (f32)output->height};
+   rect = r_intersect_rect(rect, out_rect);
+
+   int offsetx = 0;
+   int offsety = 0;
+   if(x < 0)
+   {
+      offsetx = -x;
+   }
+   if(y < 0)
+   {
+      offsety = -y;
+   }
+
+   u32 *src_row = (u32 *)bitmap.memory + offsety*bitmap.width + offsetx;
+   u32 *dest_row = (u32 *)output->memory + (int)rect.y*output->width + (int)rect.x;
    for(umm y_scan = 0;
-       y_scan < bitmap.height;
+       y_scan < rect.h;
        ++y_scan)
    {
+      u32 *src = src_row;
       u32 *dest = dest_row;
       for(umm x_scan = 0;
-          x_scan < bitmap.width;
+          x_scan < rect.w;
           ++x_scan)
       {
          f32 alpha = (f32)((*src & 0xFF000000) >> 24);
@@ -139,35 +175,51 @@ render_bitmap(Bitmap *output, Bitmap bitmap, int x, int y)
          *dest++ = color;
          ++src;
       }
+      src_row = (u32 *)bitmap.memory + (offsety + y_scan)*bitmap.width + offsetx;
       dest_row += output->width;
    }
 }
 
 local void
-render_bitmap_atlas(Bitmap *output, Rect rect, Atlas *atlas, int x, int y, f32 scale)
+render_bitmap_atlas(Bitmap *output, Rect atlas_rect, Atlas *atlas, int x, int y, f32 scale)
 {
-   u32 left =   (u32)round_f32(rect.x*atlas->width);
-   u32 right =  (u32)round_f32((rect.x + rect.w)*atlas->width);
-   u32 top =    (u32)round_f32(rect.y*atlas->height);
-   u32 bottom = (u32)round_f32((rect.y + rect.h)*atlas->height);
+   u32 left =   (u32)round_f32(atlas_rect.x*atlas->width);
+   u32 right =  (u32)round_f32((atlas_rect.x + atlas_rect.w)*atlas->width);
+   u32 top =    (u32)round_f32(atlas_rect.y*atlas->height);
+   u32 bottom = (u32)round_f32((atlas_rect.y + atlas_rect.h)*atlas->height);
 
    u32 bitmap_width = right - left;
    u32 bitmap_height = bottom - top;
 
+   Rect rect = {(f32)x, (f32)y, (f32)bitmap_width*scale, (f32)bitmap_height*scale};
+   Rect out_rect = {0, 0, (f32)output->width, (f32)output->height};
+   rect = r_intersect_rect(rect, out_rect);
+
    f32 u = 0;
    f32 v = 0;
 
-   u32 *src = (u32 *)atlas->memory + top*atlas->width + left;
-   u32 *dest_row = (u32 *)output->memory + y*output->width + x;
+   int offsetx = 0;
+   int offsety = 0;
+   if(x < 0)
+   {
+      offsetx = -x;
+   }
+   if(y < 0)
+   {
+      offsety = -y;
+   }
+
+   u32 *src = (u32 *)atlas->memory + (top + offsety)*atlas->width + left + offsetx;
+   u32 *dest_row = (u32 *)output->memory + (int)rect.y*output->width + (int)rect.x;
    for(u32 y_scan = 0;
-       y_scan < bitmap_height*scale;
+       y_scan < rect.h;
        ++y_scan)
    {
       // u32 *src = src_row;
       u32 *dest = dest_row;
       f32 v = (f32)y_scan/((f32)bitmap_height*scale);
       for(u32 x_scan = 0;
-          x_scan < bitmap_width*scale;
+          x_scan < rect.w;
           ++x_scan)
       {
          f32 u = (f32)x_scan/((f32)bitmap_width*scale);

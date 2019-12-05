@@ -147,7 +147,6 @@ window_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
                // invalid_default_case;
             }
          }
-
       } break;
 
       case WM_MOUSEMOVE:

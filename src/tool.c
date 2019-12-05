@@ -117,7 +117,7 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
       state->mspf_set = false;
       state->mspf_toggle_key = '0';
 
-      // state->test_bitmap = load_bitmap_from_bmp(&perm_mandala, "..\\thing.bmp");
+      state->test_bitmap = load_bitmap_from_bmp(&perm_mandala, "..\\thing.bmp");
 
       u_init(&state->u_context, state->assets.font.glyph_height, state->assets.font.glyph_width);
 
@@ -730,6 +730,16 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
 #if 0
    // r_bitmap(r_context, &state->test_bitmap, (v2){250, 250});
    r_blur(r_context, (Rect){50, 50, 300, 300}, 3);
+#endif
+
+#if 0
+   Rect a = {100, 100, 75, 75};
+   r_rectangle_rect(r_context, a, (v4){0, 100, 100, 255});
+   Rect b = {(f32)input->mouse.x, (f32)input->mouse.y, 40, 40};
+   r_rectangle_rect(r_context, b, (v4){100, 100, 0, 255});
+   r_rectangle_rect(r_context, r_intersect_rect(b, a), (v4){100, 0, 0, 255});
+#else
+   r_bitmap(r_context, &state->test_bitmap, (v2){(f32)input->mouse.x - state->test_bitmap.width/2, (f32)input->mouse.y - state->test_bitmap.height/2});
 #endif
 
    r_render(back_buffer, r_context);

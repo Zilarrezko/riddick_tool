@@ -43,6 +43,20 @@ r_rectangle(R_Context *r_context, v2 pos, v2 dim, v4 color)
 }
 
 local void
+r_rectangle_rect(R_Context *r_context, Rect rect, v4 color)
+{
+   R_Rect *element = (R_Rect *)r_push_element(r_context, R_Type_Rect);
+   if(element)
+   {
+      v2 pos = {rect.x, rect.y};
+      v2 dim = {rect.w, rect.h};
+      element->pos = pos;
+      element->dim = dim;
+      element->color = color;
+   }
+}
+
+local void
 r_bitmap(R_Context *r_context, Bitmap *bitmap, v2 pos)
 {
    R_Bitmap *element = (R_Bitmap *)r_push_element(r_context, R_Type_Bitmap);
