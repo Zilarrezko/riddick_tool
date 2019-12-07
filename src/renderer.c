@@ -43,6 +43,18 @@ r_rectangle(R_Context *r_context, v2 pos, v2 dim, v4 color)
 }
 
 local void
+r_circle(R_Context *r_context, v2 pos, f32 r, v4 color)
+{
+   R_Circle *element = (R_Circle *)r_push_element(r_context, R_Type_Circle);
+   if(element)
+   {
+      element->pos = pos;
+      element->radius = r;
+      element->color = color;
+   }
+}
+
+local void
 r_rectangle_rect(R_Context *r_context, Rect rect, v4 color)
 {
    R_Rect *element = (R_Rect *)r_push_element(r_context, R_Type_Rect);
@@ -147,6 +159,12 @@ r_render(Bitmap *output, R_Context *r_context)
             R_Rect element = header->rect;
 
             render_rect(output, element.pos, element.dim, element.color);
+         } break;
+         case R_Type_Circle:
+         {
+            R_Circle element = header->circle;
+
+            render_circle(output, element.pos, element.radius, element.color);
          } break;
          case R_Type_Blur:
          {

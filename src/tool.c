@@ -734,12 +734,16 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
 
 #if 0
    Rect a = {100, 100, 75, 75};
-   r_rectangle_rect(r_context, a, (v4){0, 100, 100, 255});
-   Rect b = {(f32)input->mouse.x, (f32)input->mouse.y, 40, 40};
-   r_rectangle_rect(r_context, b, (v4){100, 100, 0, 255});
-   r_rectangle_rect(r_context, r_intersect_rect(b, a), (v4){100, 0, 0, 255});
-#else
-   
+   r_rectangle_rect(r_context, a, (v4){0, 100, 100, 150});
+   Rect b = {(f32)input->mouse.x - 20, (f32)input->mouse.y - 20, 40, 40};
+   r_rectangle_rect(r_context, b, (v4){100, 100, 0, 100});
+   // r_rectangle_rect(r_context, r_intersect_rect(b, a), (v4){100, 0, 0, 255});
+#endif
+
+#if 0
+   persistent f32 cc = 0;
+   cc += state->frame_time*3.0f;
+   r_circle(r_context, (v2){(f32)input->mouse.x, (f32)input->mouse.y}, 75, (v4){100, 100, 0, sinf(cc)*255.0f/2.0f + 255.0f/2.0f});
 #endif
 
    r_render(back_buffer, r_context);

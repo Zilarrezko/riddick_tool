@@ -4,6 +4,7 @@ typedef enum
 {
    R_Type_Clear,
    R_Type_Rect,
+   R_Type_Circle,
    R_Type_Bitmap,
    R_Type_Glyph,
    R_Type_Blur
@@ -20,6 +21,13 @@ typedef struct
    v2 pos;
    v2 dim;
 } R_Rect;
+
+typedef struct
+{
+   v4 color;
+   v2 pos;
+   f32 radius;
+} R_Circle;
 
 typedef struct
 {
@@ -48,6 +56,7 @@ typedef struct
    {
       R_Clear clear;
       R_Rect rect;
+      R_Circle circle;
       R_Bitmap bitmap;
       R_Glyph glyph;
       R_Blur blur;

@@ -863,6 +863,5 @@ random_bilateral(Entropy *entropy)
    return result;
 }
 
-
 #define jec_h
 #endif
