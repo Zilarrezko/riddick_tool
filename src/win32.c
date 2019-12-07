@@ -7,6 +7,8 @@
 
 #include "win32.h"
 
+global HCURSOR global_debug_cursor;
+
 local void
 resize_back_buffer(Back_Buffer *buffer, int width, int height)
 {
@@ -174,6 +176,13 @@ window_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
          input->mouse_down = (w_param & 0x0001) >> 0;
       } break;
 
+      case WM_SETCURSOR:
+      {
+         result = DefWindowProcA(window, message, w_param, l_param);
+         // Note: Will hide the cursor
+         // SetCursor(0);
+      } break;
+
       case WM_SETFOCUS:
       {
          state->has_focus = true;
@@ -243,6 +252,8 @@ WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR command_line, int sho
 
    LARGE_INTEGER start = {0};
 
+   global_debug_cursor = LoadCursor(0, IDC_ARROW);
+
    WNDCLASSEXA window_class = {0};
    window_class.cbSize = sizeof(WNDCLASSEX);
    window_class.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
@@ -251,7 +262,7 @@ WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR command_line, int sho
    window_class.cbWndExtra = 0;
    window_class.hInstance = instance;
    // window_class.hIcon = ;
-   // window_class.hCursor = ;
+   window_class.hCursor = global_debug_cursor;
    // window_class.hbrBackground = ;
    // window_class.lpszMenuName = ;
    window_class.lpszClassName = "riddick_tool_class";
