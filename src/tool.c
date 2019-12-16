@@ -12,6 +12,8 @@
 // [-] Logging
 // [ ] Make a custom assembler
 
+#define DEBUG 0
+
 #include "memory.c"
 #include "platform.c"
 #include "debug.c"
@@ -83,7 +85,7 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
       
       state->process = init_process();
 
-#if 1
+#if 0
       Bitmap bitmap = load_bitmap_from_bmp(&perm_mandala, "..\\font.bmp");
       font_atlas_to_file(bitmap);
       // Bitmap other_bitmap = load_bitmap_from_rta("..\\font.rta");
@@ -117,7 +119,7 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
       state->mspf_set = false;
       state->mspf_toggle_key = '0';
 
-      state->test_bitmap = load_bitmap_from_bmp(&perm_mandala, "..\\thing.bmp");
+      // state->test_bitmap = load_bitmap_from_bmp(&perm_mandala, "..\\thing.bmp");
 
       u_init(&state->u_context, state->assets.font.glyph_height, state->assets.font.glyph_width);
 
@@ -154,6 +156,11 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
          // Note: UI input handling
          if(key->code >= ' ' && key->code <= '~')
          {
+            if(!shift && key->code >= 'A' && key->code <= 'Z')
+            {
+               key->code |= 0x20;
+            }
+
             format_string(u_context->text_input, "%s%c", u_context->text_input, key->code);
          }
          else if(key->code == '\b')
@@ -304,7 +311,7 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
          }
 #endif
          char text_buffer[256] = "";
-         u_start_row(u_context, 3, (s32[]){150, 200, -1}, 28);
+         u_start_row(u_context, 2, (s32[]){150, 240}, 28);
          u_text(u_context, "fps limiter: fps:");
 #if 0
          persistent char fps_buffer[3] = "30";
@@ -316,8 +323,8 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
          bool changed_2 = u_slider(u_context, &fps_buffer, 1, 144, text_buffer);
          state->fps_inject = (s32)round_f32(fps_buffer);
 #endif
-         format_string(text_buffer, "mspf: %f", 1.0f/round_f32(fps_buffer));
-         u_text(u_context, text_buffer);
+         // format_string(text_buffer, "mspf: %f", 1.0f/round_f32(fps_buffer));
+         // u_text(u_context, text_buffer);
 
          bool changed_1 = u_checkbox(u_context, &state->mspf_set, "limiter toggle");
 
@@ -366,7 +373,6 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
          u_start_row(u_context, 3, (s32[]){150, 150, -1}, 28);
          format_string(text_buffer, "mspf_set: %hhu", state->mspf_set);
          u_text(u_context, text_buffer);
-         // format_string(text_buffer, "mspf_set: %hhu", state->mspf_set);
 #endif
       }
    }
@@ -685,6 +691,12 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
                d_log("allowing reattaching");
             }
 
+            u_start_row(u_context, 2, (s32[]){150, -1}, 32);
+            persistent char test_buffer[256] = "";
+            u_textbox(u_context, test_buffer, 256);
+
+            persistent char test_buffer2[256] = "";
+            u_textbox(u_context, test_buffer2, 256);
 #if 0
             if(u_button(u_context, "EXIT"))
             {
@@ -698,11 +710,9 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
    u_end_window(u_context);
    u_end(u_context);
 
-   umm cursor = 0;
-   while(cursor < u_context->command_mandala.used)
+   while(u_queued_commands(u_context))
    {
-      U_Command *command = (U_Command *)((u8 *)u_context->command_mandala.base + cursor);
-      cursor += sizeof(U_Command);
+      U_Command *command = u_next_command(u_context);
       switch(command->type)
       {
          case UCommand_rect:
@@ -717,10 +727,15 @@ update_and_render(State *state, Input *input, Bitmap *back_buffer)
          case UCommand_text:
          {
             U_Command_Text *text = &command->text;
-            char *string = (char *)((u8 *)u_context->command_mandala.base + cursor);
-            cursor += measure_string(string) + 1;
+            char *string = u_command_get_text(u_context, command);
 
             r_text(r_context, &assets->font, string, text->pos, 1);
+         } break;
+         case UCommand_clip:
+         {
+            U_Command_Clip *clip = &command->clip;
+            Rect rect = {clip->rect.x, clip->rect.y, clip->rect.w, clip->rect.h};
+            r_set_clip(r_context, rect);
          } break;
 
          invalid_default_case;

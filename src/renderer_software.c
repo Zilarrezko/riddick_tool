@@ -43,10 +43,10 @@ render_clear(Bitmap *output)
 }
 
 local void
-render_rect(Bitmap *output, v2 pos, v2 dim, v4 color)
+render_rect(Bitmap *output, Rect clip, v2 pos, v2 dim, v4 color)
 {
    Rect rect = {round_f32(pos.x), round_f32(pos.y), round_f32(dim.x), round_f32(dim.y)};
-   Rect out_rect = {0, 0, (f32)output->width, (f32)output->height};
+   Rect out_rect = r_intersect_rect(clip, (Rect){0, 0, (f32)output->width, (f32)output->height});
    rect = r_intersect_rect(rect, out_rect);
 
    int dest_x = (int)round_f32(rect.x);
@@ -109,7 +109,7 @@ render_rect(Bitmap *output, v2 pos, v2 dim, v4 color)
 }
 
 local void
-render_circle(Bitmap *output, v2 pos, f32 r, v4 color)
+render_circle(Bitmap *output, Rect clip, v2 pos, f32 r, v4 color)
 {
    r = round_f32(r);
 
@@ -131,7 +131,7 @@ render_circle(Bitmap *output, v2 pos, f32 r, v4 color)
       offsety = -y;
    }
 
-   Rect out_rect = {0, 0, (f32)output->width, (f32)output->height};
+   Rect out_rect = r_intersect_rect(clip, (Rect){0, 0, (f32)output->width, (f32)output->height});
    Rect draw_rect = {(f32)x, (f32)y, (f32)diameter, (f32)diameter};
    draw_rect = r_intersect_rect(out_rect, draw_rect);
 
@@ -200,10 +200,10 @@ render_circle(Bitmap *output, v2 pos, f32 r, v4 color)
 }
 
 local void
-render_bitmap(Bitmap *output, Bitmap bitmap, int x, int y)
+render_bitmap(Bitmap *output, Rect clip, Bitmap bitmap, int x, int y)
 {
    Rect rect = {(f32)x, (f32)y, (f32)bitmap.width, (f32)bitmap.height};
-   Rect out_rect = {0, 0, (f32)output->width, (f32)output->height};
+   Rect out_rect = r_intersect_rect(clip, (Rect){0, 0, (f32)output->width, (f32)output->height});
    rect = r_intersect_rect(rect, out_rect);
 
    int offsetx = 0;
@@ -276,7 +276,7 @@ render_bitmap(Bitmap *output, Bitmap bitmap, int x, int y)
 }
 
 local void
-render_bitmap_atlas(Bitmap *output, Rect atlas_rect, Atlas *atlas, int x, int y, f32 scale)
+render_bitmap_atlas(Bitmap *output, Rect clip, Rect atlas_rect, Atlas *atlas, int x, int y, f32 scale)
 {
    u32 left =   (u32)round_f32(atlas_rect.x*atlas->width);
    u32 right =  (u32)round_f32((atlas_rect.x + atlas_rect.w)*atlas->width);
@@ -287,7 +287,7 @@ render_bitmap_atlas(Bitmap *output, Rect atlas_rect, Atlas *atlas, int x, int y,
    u32 bitmap_height = bottom - top;
 
    Rect rect = {(f32)x, (f32)y, (f32)bitmap_width*scale, (f32)bitmap_height*scale};
-   Rect out_rect = {0, 0, (f32)output->width, (f32)output->height};
+   Rect out_rect = r_intersect_rect(clip, (Rect){0, 0, (f32)output->width, (f32)output->height});
    rect = r_intersect_rect(rect, out_rect);
 
    f32 u = 0;

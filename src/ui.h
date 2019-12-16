@@ -21,8 +21,6 @@ typedef struct
    v4 checkbox_unchecked_color;
    // v4 checkbox_hover_color;
    // v4 checkbox_checked_color;
-   v4 textbox_color;
-   v4 textbox_focus_color;
    v4 progress_fill_color;
 } U_Style;
 
@@ -39,7 +37,8 @@ typedef struct
 typedef enum
 {
    UCommand_text,
-   UCommand_rect
+   UCommand_rect,
+   UCommand_clip
 } U_Command_Type;
 
 typedef struct
@@ -51,6 +50,10 @@ typedef struct
    U_Rect rect;
    v4 color;
 } U_Command_Rect;
+typedef struct
+{
+   U_Rect rect;
+} U_Command_Clip;
 
 typedef struct
 {
@@ -59,6 +62,7 @@ typedef struct
    {
       U_Command_Text text;
       U_Command_Rect rect;
+      U_Command_Clip clip;
    };
 } U_Command;
 
@@ -120,6 +124,7 @@ typedef struct
    char text_input[128];
 
    U_Mandala command_mandala;
+   u32 command_cursor;
    u8 commands[COMMAND_SIZE];
 } U_Context;
 
