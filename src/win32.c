@@ -12,7 +12,7 @@ global HCURSOR global_debug_cursor;
 local void
 resize_back_buffer(Back_Buffer *buffer, int width, int height)
 {
-   if(!buffer->memory)
+   if(buffer->memory)
    {
       deallocate(buffer->memory);
    }
